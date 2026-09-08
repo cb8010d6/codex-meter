@@ -158,6 +158,7 @@
         weekly: ["每周剩余额度比例", "来自官方每周限额进度。"],
         short: ["5 小时剩余额度比例", "来自官方 5 小时限额进度。"],
         spark: ["Spark Weekly 剩余额度比例", "来自官方 GPT-5.3-Codex-Spark Weekly 限额进度。"],
+        sparkShort: ["Spark 5 小时剩余额度比例", "来自官方 GPT-5.3-Codex-Spark 5 小时限额进度。"],
         unavailable: "未返回",
         reset: "重置：{time}",
       },
@@ -363,6 +364,7 @@
         weekly: ["Weekly quota remaining", "From the official weekly quota progress."],
         short: ["5-hour quota remaining", "From the official 5-hour quota progress."],
         spark: ["Spark Weekly quota remaining", "From the official GPT-5.3-Codex-Spark Weekly quota progress."],
+        sparkShort: ["Spark 5-hour quota remaining", "From the official GPT-5.3-Codex-Spark 5-hour quota progress."],
         unavailable: "Unavailable",
         reset: "Resets: {time}",
       },
@@ -2205,11 +2207,22 @@
     null;
 
   const shortLimitWindow = (report) =>
-    (report.windows || []).find(isShortLimitWindow) || null;
+    (report.windows || []).find(
+      (window) =>
+        isShortLimitWindow(window) &&
+        window.role !== "primary" &&
+        !/(?:^|\.)primary(?:_window)?(?:\.|$)/i.test(window.key || ""),
+    ) || null;
 
-  const sparkLimitWindow = (report) =>
-    (report.customWindows || []).find((window) => window.source === "spark") ||
-    (report.customWindows || []).find((window) => /spark/i.test(window.label || "")) ||
+  const sparkLimitWindow = (report, kind) =>
+    (report.customWindows || []).find((window) => window.source === "spark" && window.kind === kind) ||
+    (report.customWindows || []).find((window) =>
+      /spark/i.test(window.label || "") &&
+      (kind == null || window.kind === kind ||
+        (window.kind == null &&
+          ((kind === "short" && isShortLimitWindow(window)) ||
+            (kind === "weekly" && !isShortLimitWindow(window))))),
+    ) ||
     null;
 
   const renderQuotaCard = (iconName, key, limitWindow, tone) => {
@@ -2314,13 +2327,15 @@
     const stats = report.currentStats;
     const weeklyWindow = weeklyLimitWindow(report);
     const shortWindow = shortLimitWindow(report);
-    const sparkWindow = sparkLimitWindow(report);
+    const sparkWindow = sparkLimitWindow(report, "weekly");
+    const sparkShortWindow = sparkLimitWindow(report, "short");
     const projection = weeklyProjection(report);
     return `
       <div class="cqc-grid">
         ${renderQuotaCard("gauge", "weekly", weeklyWindow, "fresh")}
         ${renderQuotaCard("clock", "short", shortWindow, "blue")}
         ${renderQuotaCard("sparkles", "spark", sparkWindow, "amber")}
+        ${renderQuotaCard("clock", "sparkShort", sparkShortWindow, "amber")}
         ${renderMetricCard("coins", t("metrics.credits.0"), fmtCredits(stats.credits, 2), "mint", false, t("metrics.credits.1"))}
         ${renderMetricCard("cpu", t("metrics.tokens.0"), fmtNum(stats.tokens), "blue", false, t("metrics.tokens.1"))}
         ${renderMetricCard("trendingUp", t("metrics.projected.0"), projection.value, "amber", false, projection.hint)}

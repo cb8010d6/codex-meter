@@ -49,6 +49,21 @@
   const formatUsd = (credits, usdPerCredit) =>
     `$ ${(n(credits) * n(usdPerCredit)).toFixed(2)}`;
 
+  const DAY_SECONDS = 24 * 60 * 60;
+
+  const isSubDayLimitWindow = (window) => {
+    const seconds = n(window?.limitWindowSeconds);
+    return seconds > 0 && seconds < DAY_SECONDS;
+  };
+
+  const windowRoleFromPath = (path) => {
+    const role = [...path]
+      .reverse()
+      .map((part) => String(part).toLowerCase().replace(/_window$/, ""))
+      .find((part) => /^(primary|secondary|tertiary)$/.test(part));
+    return role || null;
+  };
+
   const normalizeLimitWindow = (value, path, { labelFromPath, locale } = {}) => {
     const usedPercent =
       value.used_percent != null
@@ -70,6 +85,7 @@
     return {
       key: path.join("."),
       label: labelFromPath?.(path) || path.join("."),
+      role: windowRoleFromPath(path),
       usedPercent,
       remainingPercent,
       resetAt: resetAt || null,
@@ -134,22 +150,46 @@
       const windows = extractLimitWindows(limit.rate_limit || {}, options);
       if (!windows.length) return [];
 
-      const candidates = windows.filter((window) =>
-        window.limitWindowSeconds == null || window.limitWindowSeconds >= 6 * 24 * 60 * 60,
+      const weeklyCandidates = windows.filter((window) =>
+        window.limitWindowSeconds == null || window.limitWindowSeconds >= DAY_SECONDS,
       );
-      const selected = [...(candidates.length ? candidates : windows)].sort(
+      const shortCandidates = windows.filter(isSubDayLimitWindow);
+      const selectedWeekly = [...weeklyCandidates].sort(
         (a, b) => n(b.limitWindowSeconds) - n(a.limitWindowSeconds),
       )[0];
-      if (!selected) return [];
-
-      return [{
-        ...selected,
-        key: `additional_rate_limits.${index}.spark_weekly`,
-        label: "GPT-5.3-Codex-Spark Weekly",
-        source: "spark",
-      }];
+      const selectedShort = [...shortCandidates].sort(
+        (a, b) => n(b.limitWindowSeconds) - n(a.limitWindowSeconds),
+      )[0];
+      const result = [];
+      if (selectedWeekly) {
+        result.push({
+          ...selectedWeekly,
+          key: `additional_rate_limits.${index}.spark_weekly`,
+          label: "GPT-5.3-Codex-Spark Weekly",
+          source: "spark",
+          kind: "weekly",
+        });
+      }
+      if (selectedShort) {
+        result.push({
+          ...selectedShort,
+          key: `additional_rate_limits.${index}.spark_short`,
+          label: "GPT-5.3-Codex-Spark 5-hour",
+          source: "spark",
+          kind: "short",
+        });
+      }
+      return result;
     });
   };
+
+  // Ordinary Codex and Spark use the same WHAM window shape, but their sub-day primary
+  // windows have different ownership. Keep ordinary primary bursts out of the generic
+  // short quota; Spark bursts are returned only through extractAdditionalLimitWindows.
+  const extractOrdinaryLimitWindows = (root, options = {}) =>
+    extractLimitWindows(root, options).filter(
+      (window) => !(window.role === "primary" && isSubDayLimitWindow(window)),
+    );
 
   const getStats = (list) => {
     const totals = list.reduce(
@@ -204,7 +244,9 @@
     cacheRatio,
     compactReport,
     extractLimitWindows,
+    extractOrdinaryLimitWindows,
     extractAdditionalLimitWindows,
+    isSubDayLimitWindow,
     formatCredits,
     formatNumber,
     formatUsd,

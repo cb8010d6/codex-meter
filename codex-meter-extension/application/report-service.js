@@ -30,7 +30,7 @@
       const endDate = domain.localDate(domain.addDays(now, 1));
       const startDate = domain.localDate(domain.addDays(now, -config.LOOKBACK_DAYS));
       const usage = await chatGptClient.apiGet("/backend-api/wham/usage", token);
-      const windows = domain.extractLimitWindows(usage?.rate_limit || {}, {
+      const windows = domain.extractOrdinaryLimitWindows(usage?.rate_limit || {}, {
         labelFromPath,
         locale: getPageLocale(),
       });

@@ -61,7 +61,7 @@
 - 使用 Codex 页面 CSS 变量，跟随浅色 / 深色主题
 - 按页面 locale 自动切换文案，内置 `zh-CN`、`zh-TW`、`zh-HK`、`en-US`、`ja-JP`、`fr-FR`、`ru-RU`、`es-ES`、`de-DE`
 - 统计本周期 Credits、总 Tokens、输入 Tokens、缓存命中率、推算周额度和折算金额
-- 同时展示官方 5 小时、每周和 GPT-5.3-Codex-Spark Weekly 限额及重置时间
+- 同时展示官方普通 Codex 5 小时、每周，以及 Spark Weekly / Spark 5 小时限额及重置时间；不同来源不会互相归类
 - 美元金额仅按本地规划估算（1 Credit ≈ US$0.04），不是官方固定汇率或账单金额
 - 展示本周期每日明细和周期外历史明细
 - 支持 JSON / CSV 导出
@@ -149,7 +149,7 @@ It does not require another login and does not store your ChatGPT Web token. Whe
 - Uses Codex page CSS variables and follows light / dark theme where available
 - Follows the page locale, with copy for `zh-CN`, `zh-TW`, `zh-HK`, `en-US`, `ja-JP`, `fr-FR`, `ru-RU`, `es-ES`, and `de-DE`
 - Shows cycle Credits, total Tokens, input Tokens, cache hit rate, projected weekly Credits, and estimated USD value
-- Shows the official 5-hour, weekly, and GPT-5.3-Codex-Spark Weekly quota windows with reset times
+- Shows ordinary Codex 5-hour and weekly quota windows plus separate Spark Weekly / Spark 5-hour windows with reset times; sources are kept isolated
 - Treats dollar values as a local planning estimate (1 Credit ≈ US$0.04), not an official exchange rate or invoice
 - Shows current-cycle daily rows and out-of-cycle history rows
 - Exports JSON and CSV
