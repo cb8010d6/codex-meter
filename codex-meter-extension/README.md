@@ -12,6 +12,8 @@ Local Chrome extension for the ChatGPT Codex analytics page.
 - Follows the Codex page locale from `client-bootstrap.locale` / `html[lang]` using official-style locale IDs. Included UI copy: `zh-CN`, `zh-TW`, `zh-HK`, `en-US`, `ja-JP`, `fr-FR`, `ru-RU`, `es-ES`, and `de-DE`, with English fallback.
 - Reads the same private `wham` analytics endpoints used by the page.
 - Shows current-cycle credits, total tokens, input tokens, cache hit rate, estimated USD value, and daily usage rows in the page modal.
+- Shows the official 5-hour, weekly, and GPT-5.3-Codex-Spark Weekly quota windows with reset times.
+- Dollar values are local planning estimates (1 Credit ≈ US$0.04), not an official exchange rate or invoice.
 - Saves compact local snapshots in `chrome.storage.local`.
 - Exports the latest page-level data as JSON or CSV.
 - Uses local inline Lucide-style SVG icons; no remote icon script is loaded.

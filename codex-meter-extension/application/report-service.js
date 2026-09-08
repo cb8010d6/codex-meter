@@ -34,6 +34,10 @@
         labelFromPath,
         locale: getPageLocale(),
       });
+      const customWindows = domain.extractAdditionalLimitWindows(usage?.additional_rate_limits, {
+        labelFromPath,
+        locale: getPageLocale(),
+      });
       const primaryWindow = windows[0] || null;
       const cycleStartDate = primaryWindow?.cycleStart || startDate;
       const dailyData = await chatGptClient.apiGet(
@@ -57,6 +61,7 @@
         endDate,
         cycleStartDate,
         windows,
+        customWindows,
         primaryWindow,
         currentCycleList,
         historyList,

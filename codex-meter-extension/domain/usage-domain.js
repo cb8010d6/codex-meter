@@ -120,6 +120,37 @@
     });
   };
 
+  const isSparkLimit = (limit = {}) => {
+    const name = String(limit.limit_name ?? "").toLowerCase();
+    const feature = String(limit.metered_feature ?? "").toLowerCase();
+    return feature === "codex_bengalfox" || name.includes("gpt-5.3-codex-spark");
+  };
+
+  const extractAdditionalLimitWindows = (additionalRateLimits, options = {}) => {
+    if (!Array.isArray(additionalRateLimits)) return [];
+
+    return additionalRateLimits.flatMap((limit, index) => {
+      if (!isSparkLimit(limit)) return [];
+      const windows = extractLimitWindows(limit.rate_limit || {}, options);
+      if (!windows.length) return [];
+
+      const candidates = windows.filter((window) =>
+        window.limitWindowSeconds == null || window.limitWindowSeconds >= 6 * 24 * 60 * 60,
+      );
+      const selected = [...(candidates.length ? candidates : windows)].sort(
+        (a, b) => n(b.limitWindowSeconds) - n(a.limitWindowSeconds),
+      )[0];
+      if (!selected) return [];
+
+      return [{
+        ...selected,
+        key: `additional_rate_limits.${index}.spark_weekly`,
+        label: "GPT-5.3-Codex-Spark Weekly",
+        source: "spark",
+      }];
+    });
+  };
+
   const getStats = (list) => {
     const totals = list.reduce(
       (sum, row) => {
@@ -158,6 +189,7 @@
     endDate: report.endDate,
     cycleStartDate: report.cycleStartDate,
     windows: report.windows,
+    customWindows: report.customWindows || [],
     primaryWindow: report.primaryWindow,
     currentStats: report.currentStats,
     historyStats: report.historyStats,
@@ -172,6 +204,7 @@
     cacheRatio,
     compactReport,
     extractLimitWindows,
+    extractAdditionalLimitWindows,
     formatCredits,
     formatNumber,
     formatUsd,

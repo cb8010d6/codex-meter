@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const CONTENT_SCRIPT_VERSION = "0.4.20";
+  const CONTENT_SCRIPT_VERSION = "0.4.21";
   const ENABLE_CHART_TOOLTIP_ENHANCER = false;
   const CHART_IDS = {
     controls: "codex-meter-chart-controls",
@@ -154,6 +154,13 @@
         primary: "每周使用限额",
         fallback: "使用限额",
       },
+      quota: {
+        weekly: ["每周剩余额度比例", "来自官方每周限额进度。"],
+        short: ["5 小时剩余额度比例", "来自官方 5 小时限额进度。"],
+        spark: ["Spark Weekly 剩余额度比例", "来自官方 GPT-5.3-Codex-Spark Weekly 限额进度。"],
+        unavailable: "未返回",
+        reset: "重置：{time}",
+      },
       sections: {
         current: "本周期每日用量",
         currentMeta: "从 {date} 开始统计",
@@ -173,7 +180,7 @@
         },
         projectionLag: "每日明细可能滞后，稍后更稳。",
         cache: ["输入缓存命中率", "缓存输入占全部输入 Tokens 的比例。"],
-        usd: ["推算周价值", "按推算周 Credits × US$40/1000 估算。"],
+        usd: ["推算周价值", "按本地估算 1 Credit ≈ US$0.04；不是官方账单金额。"],
       },
       table: {
         empty: "这个时间段还没有 Codex 用量记录。",
@@ -352,6 +359,13 @@
         primary: "Weekly usage limit",
         fallback: "Usage limit",
       },
+      quota: {
+        weekly: ["Weekly quota remaining", "From the official weekly quota progress."],
+        short: ["5-hour quota remaining", "From the official 5-hour quota progress."],
+        spark: ["Spark Weekly quota remaining", "From the official GPT-5.3-Codex-Spark Weekly quota progress."],
+        unavailable: "Unavailable",
+        reset: "Resets: {time}",
+      },
       sections: {
         current: "Daily usage in this cycle",
         currentMeta: "Counting from {date}",
@@ -371,7 +385,7 @@
         },
         projectionLag: "Daily details may lag; refresh later.",
         cache: ["Input cache hit rate", "Cached input as a share of all input Tokens."],
-        usd: ["Projected weekly value", "Based on projected weekly Credits at US$40/1000."],
+        usd: ["Projected weekly value", "Local estimate at 1 Credit ≈ US$0.04; not an official invoice amount."],
       },
       table: {
         empty: "No Codex usage was recorded in this date range.",
@@ -2176,10 +2190,39 @@
       }
     `;
 
+  const isShortLimitWindow = (window) => {
+    const identity = `${window?.key || ""} ${window?.label || ""}`;
+    return (
+      (window?.limitWindowSeconds != null && n(window.limitWindowSeconds) < 6 * 24 * 60 * 60) ||
+      /secondary|5[ -]?hour|5\s*小时|5\s*小時/i.test(identity)
+    );
+  };
+
   const weeklyLimitWindow = (report) =>
     (report.windows || []).find((window) => n(window.limitWindowSeconds) >= 6 * 24 * 60 * 60) ||
+    (report.windows || []).find((window) => !isShortLimitWindow(window)) ||
     report.primaryWindow ||
     null;
+
+  const shortLimitWindow = (report) =>
+    (report.windows || []).find(isShortLimitWindow) || null;
+
+  const sparkLimitWindow = (report) =>
+    (report.customWindows || []).find((window) => window.source === "spark") ||
+    (report.customWindows || []).find((window) => /spark/i.test(window.label || "")) ||
+    null;
+
+  const renderQuotaCard = (iconName, key, limitWindow, tone) => {
+    const remaining = limitWindow?.remainingPercent;
+    const value = remaining == null ? t("quota.unavailable") : `${remaining.toFixed(1)}%`;
+    const hint = [
+      t(`quota.${key}.1`),
+      limitWindow?.resetAtLocal ? t("quota.reset", { time: limitWindow.resetAtLocal }) : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return renderMetricCard(iconName, t(`quota.${key}.0`), value, tone, false, hint);
+  };
 
   const rowCredits = (row) => n(row?.totals?.credits);
 
@@ -2270,11 +2313,14 @@
   const renderSummaryCards = (report) => {
     const stats = report.currentStats;
     const weeklyWindow = weeklyLimitWindow(report);
+    const shortWindow = shortLimitWindow(report);
+    const sparkWindow = sparkLimitWindow(report);
     const projection = weeklyProjection(report);
-    const remaining = weeklyWindow?.remainingPercent;
     return `
       <div class="cqc-grid">
-        ${renderMetricCard("gauge", t("metrics.remaining.0"), remaining == null ? "N/A" : `${remaining.toFixed(1)}%`, "fresh", true, t("metrics.remaining.1"))}
+        ${renderQuotaCard("gauge", "weekly", weeklyWindow, "fresh")}
+        ${renderQuotaCard("clock", "short", shortWindow, "blue")}
+        ${renderQuotaCard("sparkles", "spark", sparkWindow, "amber")}
         ${renderMetricCard("coins", t("metrics.credits.0"), fmtCredits(stats.credits, 2), "mint", false, t("metrics.credits.1"))}
         ${renderMetricCard("cpu", t("metrics.tokens.0"), fmtNum(stats.tokens), "blue", false, t("metrics.tokens.1"))}
         ${renderMetricCard("trendingUp", t("metrics.projected.0"), projection.value, "amber", false, projection.hint)}

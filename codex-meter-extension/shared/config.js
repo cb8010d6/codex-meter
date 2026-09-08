@@ -2,6 +2,7 @@
   "use strict";
 
   const CONFIG = {
+    // Planning estimate only; OpenAI does not publish one universal Pro credit-to-USD rate.
     USD_PER_CREDIT: 40 / 1000,
     LOOKBACK_DAYS: 45,
     MAX_SNAPSHOTS: 180,
