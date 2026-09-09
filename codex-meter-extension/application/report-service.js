@@ -50,7 +50,7 @@
         ),
         chatGptClient
           .apiGet(
-            `/backend-api/wham/usage/daily-token-usage-breakdown?start_date=${startDate}&end_date=${endDate}&group_by=day`,
+            `/backend-api/wham/usage/daily-workspace-user-token-usage-breakdown?start_date=${startDate}&end_date=${endDate}&group_by=day`,
             token,
           )
           .catch(() => null),

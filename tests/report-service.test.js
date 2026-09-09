@@ -34,7 +34,7 @@ const makeService = ({ breakdownFails = false } = {}) => {
           },
         };
       }
-      if (url.includes("daily-token-usage-breakdown")) {
+      if (url.includes("daily-workspace-user-token-usage-breakdown")) {
         if (breakdownFails) throw new Error("not available");
         return {
           data: [
@@ -77,7 +77,13 @@ const makeService = ({ breakdownFails = false } = {}) => {
 (async () => {
   const success = makeService();
   const report = await success.service.buildReport();
-  assert.ok(success.requests.some((url) => url.includes("daily-token-usage-breakdown")));
+  assert.ok(
+    success.requests.some((url) => url.includes("daily-workspace-user-token-usage-breakdown")),
+  );
+  assert.equal(
+    success.requests.some((url) => /\/daily-token-usage-breakdown\?/.test(url)),
+    false,
+  );
   assert.equal(report.modelTokenStats.models[0].model, "gpt-5.6-sol");
   assert.equal(report.modelTokenStats.totals.creditEquivalent, 100);
 
