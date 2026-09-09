@@ -130,6 +130,7 @@
     "zh-CN": {
       usageDetails: "使用详情",
       analyticsUsageHistory: "使用历史",
+      dataDelayNotice: "额度百分比接近实时；模型用量与 Credits 明细可能延迟，因此推算结果存在误差。",
       personalUsage: "个人使用",
       trigger: {
         title: "打开 Codex Meter",
@@ -345,6 +346,7 @@
     "en-US": {
       usageDetails: "Usage details",
       analyticsUsageHistory: "Usage history",
+      dataDelayNotice: "Quota percentages are near real time; model usage and Credits details may lag, so projections can differ from the final values.",
       personalUsage: "Personal usage",
       trigger: {
         title: "Open Codex Meter",
@@ -2011,6 +2013,8 @@
   };
 
   const ensureUi = () => {
+    const settingsDialog = findKnownHeading("analyticsUsageHistory")?.closest("[role='dialog']");
+    const uiHost = settingsDialog || document.documentElement;
     let overlay = document.getElementById(IDS.overlay);
     if (!overlay) {
       overlay = document.createElement("div");
@@ -2018,7 +2022,9 @@
       overlay.addEventListener("click", (event) => {
         if (event.target === overlay) closePanel();
       });
-      document.documentElement.appendChild(overlay);
+      uiHost.appendChild(overlay);
+    } else if (overlay.parentElement !== uiHost) {
+      uiHost.appendChild(overlay);
     }
 
     if (!ensureUi.didInstallEscapeHandler) {
@@ -2205,6 +2211,7 @@
 
   const renderReportBody = (report) => `
       <div class="cqc-status">${icon("check")}<span>${escapeHtml(t("updated", { time: report.capturedAtLocal }))}</span></div>
+      <div class="cqc-data-delay-notice">${icon("alert")}<span>${escapeHtml(t("dataDelayNotice"))}</span></div>
       ${renderSummaryCards(report)}
       ${renderModelTokenSection(report)}
       ${renderDailySection(
@@ -2347,6 +2354,9 @@
     const weightedHint = weighted.canEstimate
       ? t("metrics.weightedCapacity.1")
       : t("metrics.weightedUnavailable.1");
+    const hasModelTokenData = (report.currentModelTokenStats?.models || []).some(
+      (model) => n(model.tokens) > 0,
+    );
     return `
       <div class="cqc-grid">
         ${renderMetricCard("gauge", t("metrics.remaining.0"), remaining == null ? "N/A" : `${remaining.toFixed(1)}%`, "fresh", true, t("metrics.remaining.1"))}
@@ -2355,15 +2365,15 @@
         ${renderMetricCard("trendingUp", t("metrics.projected.0"), projection.value, "amber", false, projection.hint)}
         ${renderMetricCard("layers", t("metrics.cache.0"), `${(stats.cacheRatio * 100).toFixed(1)}%`, "violet", false, t("metrics.cache.1"))}
         ${renderMetricCard("wallet", t("metrics.usd.0"), projection.usdValue, "ink", false, projection.usdHint)}
-        ${renderMetricCard("cpu", t("metrics.weightedUsage.0"), weighted.current > 0 ? `~${fmtCredits(weighted.current, weighted.current >= 1000 ? 0 : 1)}` : weightedUnavailable, "blue", false, t("metrics.weightedUsage.1"))}
-        ${renderMetricCard("trendingUp", t("metrics.weightedCapacity.0"), weighted.canEstimate ? `~${fmtCredits(weighted.estimate, weighted.estimate >= 1000 ? 0 : 1)}` : weightedUnavailable, "amber", false, weightedHint)}
+        ${hasModelTokenData ? renderMetricCard("cpu", t("metrics.weightedUsage.0"), weighted.current > 0 ? `~${fmtCredits(weighted.current, weighted.current >= 1000 ? 0 : 1)}` : weightedUnavailable, "blue", false, t("metrics.weightedUsage.1")) : ""}
+        ${hasModelTokenData ? renderMetricCard("trendingUp", t("metrics.weightedCapacity.0"), weighted.canEstimate ? `~${fmtCredits(weighted.estimate, weighted.estimate >= 1000 ? 0 : 1)}` : weightedUnavailable, "amber", false, weightedHint) : ""}
       </div>
     `;
   };
 
   const renderModelTokenSection = (report) => {
     const stats = report.currentModelTokenStats;
-    const models = stats?.models || [];
+    const models = (stats?.models || []).filter((model) => n(model.tokens) > 0);
     if (!models.length) return "";
     const totals = stats.totals || {};
     const coverage = Math.round(n(totals.rateCoverage) * 100);

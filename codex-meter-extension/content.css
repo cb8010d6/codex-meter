@@ -631,6 +631,25 @@
   animation: cqc-spin 900ms linear infinite;
 }
 
+.cqc-data-delay-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: -6px 0 20px;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--cqc-warning-text) 28%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--cqc-warning-bg) 72%, transparent);
+  color: var(--cqc-warning-text);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.cqc-data-delay-notice .cqc-icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
 @keyframes cqc-spin {
   to {
     transform: rotate(360deg);

@@ -14,6 +14,8 @@ Local Chrome extension for the ChatGPT Codex analytics page.
 - Reads the same private `wham` analytics endpoints used by the page.
 - Shows current-cycle credits, total tokens, input tokens, cache hit rate, estimated USD value, and daily usage rows in the page modal.
 - Reads the optional per-model token breakdown endpoint and shows uncached input, cached input, output, and a non-billing credit-equivalent estimate. Models with separate limits such as Spark are excluded from the general weekly estimate.
+- Hides model-weighted cards and the model table when plans such as Pro do not expose a workspace model breakdown.
+- Notes that quota percentages are near real time while model token and Credits details may lag, making projections approximate.
 - Saves compact local snapshots in `chrome.storage.local`.
 - Exports the latest page-level data as JSON or CSV.
 - Uses local inline Lucide-style SVG icons; no remote icon script is loaded.

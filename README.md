@@ -60,6 +60,8 @@
 - Meter 图表跟随页面顶部的 7 天 / 1 个月 / 自定义范围，以及天 / 周分组方式
 - 总 Tokens 图表按未缓存输入、缓存输入、输出 Tokens 分层展示
 - 按模型展示本周期未缓存输入、缓存输入、输出 Tokens，并根据公开费率计算非账单性质的 Credit 等值和周容量估算；Spark 始终按独立额度处理
+- Pro 等无 workspace 模型明细的账号会自动隐藏模型加权卡片和模型表，不显示误导性的空数据
+- 明确提示官方额度百分比接近实时，而模型 Tokens 与 Credits 明细可能延迟，相关推算存在误差
 - 使用 Codex 页面 CSS 变量，跟随浅色 / 深色主题
 - 按页面 locale 自动切换文案，内置 `zh-CN`、`zh-TW`、`zh-HK`、`en-US`、`ja-JP`、`fr-FR`、`ru-RU`、`es-ES`、`de-DE`
 - 统计本周期 Credits、总 Tokens、输入 Tokens、缓存命中率、推算周额度和折算金额
@@ -154,6 +156,8 @@ It does not require another login and does not store your ChatGPT Web token. Whe
 - Follows the page-level 7 days / 1 month / custom range and day / week grouping controls
 - Shows total Tokens as uncached input, cached input, and output token layers
 - Breaks current-cycle Tokens down by model and input/cache/output type, with a non-billing credit-equivalent weekly-capacity estimate; Spark always remains a separate quota
+- Automatically hides model-weighted cards and the model table for plans such as Pro when no workspace model breakdown is available
+- Warns that official quota percentages are near real time while model Tokens and Credits details may lag, so projections can differ
 - Uses Codex page CSS variables and follows light / dark theme where available
 - Follows the page locale, with copy for `zh-CN`, `zh-TW`, `zh-HK`, `en-US`, `ja-JP`, `fr-FR`, `ru-RU`, `es-ES`, and `de-DE`
 - Shows cycle Credits, total Tokens, input Tokens, cache hit rate, projected weekly Credits, and estimated USD value
