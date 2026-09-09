@@ -222,9 +222,41 @@
     }
   };
 
-  const runActiveAnalysis = async ({ openPanel = false } = {}) => {
+  const isChatGptUrl = (url) => {
+    try {
+      return new URL(url).origin === ROUTES.analyticsOrigin;
+    } catch {
+      return false;
+    }
+  };
+
+  const probeAnalyticsRoute = async (tabId) => {
+    try {
+      const response = await chrome.tabs.sendMessage(tabId, { type: "CQC_GET_ROUTE_STATE" });
+      return response?.ok === true && response.isAnalyticsRoute === true;
+    } catch {
+      return false;
+    }
+  };
+
+  const resolveAnalyticsTab = async () => {
     const tab = await activeTab();
-    if (!tab?.id || !isAnalyticsUrl(tab.url)) {
+    if (!tab?.id) return null;
+    if (isAnalyticsUrl(tab.url)) return tab;
+    if (!isChatGptUrl(tab.url)) return null;
+    if (await probeAnalyticsRoute(tab.id)) return tab;
+    try {
+      await injectIntoTab(tab.id);
+    } catch {
+      return null;
+    }
+    if (await probeAnalyticsRoute(tab.id)) return tab;
+    return null;
+  };
+
+  const runActiveAnalysis = async ({ openPanel = false } = {}) => {
+    const tab = await resolveAnalyticsTab();
+    if (!tab?.id) {
       setStatus(t("status.openFirst"), "error");
       return;
     }
@@ -234,7 +266,7 @@
       let response = await sendRefreshMessage(tab.id, openPanel);
       if (!response?.ok && /Receiving end does not exist|Could not establish connection/i.test(response?.error || "")) {
         await injectIntoTab(tab.id);
-        response = await sendRefreshMessage(tab.id, openPanel);
+        response = await sendRefreshMessageWithRetry(tab.id, openPanel);
       }
       if (!response?.ok) throw new Error(response?.error || t("status.noResponse"));
       await loadState();
@@ -254,6 +286,19 @@
     }
   };
 
+  const sendRefreshMessageWithRetry = async (tabId, openPanel, attempts = 4) => {
+    let response = null;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      response = await sendRefreshMessage(tabId, openPanel);
+      if (response?.ok) return response;
+      if (!/Receiving end does not exist|Could not establish connection/i.test(response?.error || "")) {
+        return response;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+    return response;
+  };
+
   const injectIntoTab = async (tabId) => {
     await chrome.scripting.insertCSS({
       target: { tabId },
@@ -262,6 +307,7 @@
     await chrome.scripting.executeScript({
       target: { tabId },
       files: [
+        "route-bootstrap.js",
         "icons.js",
         "shared/config.js",
         "domain/usage-domain.js",

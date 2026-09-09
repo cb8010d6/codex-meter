@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const CONTENT_SCRIPT_VERSION = "0.4.20";
+  const CONTENT_SCRIPT_VERSION = "0.4.21";
   const ENABLE_CHART_TOOLTIP_ENHANCER = false;
   const CHART_IDS = {
     controls: "codex-meter-chart-controls",
@@ -959,6 +959,11 @@
     );
   };
 
+  // ChatGPT can collapse #settings/Analytics to #settings after rendering.
+  // The visible Analytics heading is the reliable fallback in that state.
+  const isCurrentAnalyticsPage = () =>
+    isAnalyticsRoute() || Boolean(findKnownHeading("analyticsUsageHistory"));
+
   const sectionForHeading = (heading) => {
     if (!heading) return null;
     const headingRect = heading.getBoundingClientRect();
@@ -1119,7 +1124,7 @@
   };
 
   const ensureDetailButton = () => {
-    if (!isAnalyticsRoute() || !meterSettings.showPageButton) {
+    if (!isCurrentAnalyticsPage() || !meterSettings.showPageButton) {
       removeDetailButton();
       return false;
     }
@@ -1165,7 +1170,7 @@
   };
 
   const ensureUsageChartSwitch = () => {
-    if (!isAnalyticsRoute() || !meterSettings.showChartControls) {
+    if (!isCurrentAnalyticsPage() || !meterSettings.showChartControls) {
       removeUsageChartSwitch();
       return false;
     }
@@ -2004,6 +2009,10 @@
     if (ensureChromeRuntimeListener.didInstall) return;
     ensureChromeRuntimeListener.didInstall = true;
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      if (message?.type === "CQC_GET_ROUTE_STATE") {
+        sendResponse({ ok: true, isAnalyticsRoute: isCurrentAnalyticsPage() });
+        return false;
+      }
       if (message?.type !== "CQC_RUN_ANALYSIS") return false;
       runAnalysis({ openPanel: message.openPanel !== false })
         .then((report) => sendResponse({ ok: true, report: compactReport(report) }))
@@ -2026,6 +2035,7 @@
     } else if (overlay.parentElement !== uiHost) {
       uiHost.appendChild(overlay);
     }
+    overlay.dataset.host = settingsDialog ? "settings" : "root";
 
     if (!ensureUi.didInstallEscapeHandler) {
       ensureUi.didInstallEscapeHandler = true;
@@ -2138,7 +2148,7 @@
   };
 
   const updateVisibility = () => {
-    const visible = isAnalyticsRoute();
+    const visible = isCurrentAnalyticsPage();
     if (visible) {
       ensureUi();
       if (meterSettings.showPageButton) {
@@ -2168,7 +2178,7 @@
   };
 
   const runAnalysis = async ({ openPanel: shouldOpenPanel = true } = {}) => {
-    if (!isAnalyticsRoute()) {
+    if (!isCurrentAnalyticsPage()) {
       throw new Error(t("openAnalyticsFirst"));
     }
     if (isRunning) return latestReport;
@@ -2626,7 +2636,7 @@
   };
 
   const refreshPassiveReport = ({ force = false } = {}) => {
-    if (isRunning || !isAnalyticsRoute()) return Promise.resolve(latestReport);
+    if (isRunning || !isCurrentAnalyticsPage()) return Promise.resolve(latestReport);
     const now = Date.now();
     if (!force && now - lastPassiveRefreshAt < PASSIVE_REFRESH_MIN_INTERVAL_MS) {
       return Promise.resolve(latestReport);
@@ -2680,7 +2690,7 @@
 
   const scheduleChartTooltipEnhance = () => {
     if (!ENABLE_CHART_TOOLTIP_ENHANCER) return;
-    if (!isAnalyticsRoute()) return;
+    if (!isCurrentAnalyticsPage()) return;
     if (chartTooltipFrame) return;
     chartTooltipFrame = requestAnimationFrame(() => {
       chartTooltipFrame = 0;
@@ -3058,9 +3068,9 @@
       const routeChanged = route !== lastRoute;
       const hasButton = Boolean(document.getElementById(IDS.button));
       const hasChartSwitch = Boolean(document.getElementById(CHART_IDS.switcher));
-      const needsButton = isAnalyticsRoute() && meterSettings.showPageButton && !hasButton;
-      const needsChartSwitch = isAnalyticsRoute() && meterSettings.showChartControls && !hasChartSwitch;
-      const staleButton = !isAnalyticsRoute() && hasButton;
+      const needsButton = isCurrentAnalyticsPage() && meterSettings.showPageButton && !hasButton;
+      const needsChartSwitch = isCurrentAnalyticsPage() && meterSettings.showChartControls && !hasChartSwitch;
+      const staleButton = !isCurrentAnalyticsPage() && hasButton;
       const fixedButtonCanRemount =
         hasButton &&
         document.getElementById(IDS.button)?.dataset.placement === "fixed" &&
@@ -3098,7 +3108,7 @@
     if (installUsageChartControlSync.didInstall) return;
     installUsageChartControlSync.didInstall = true;
     const onPossibleControlChange = (event) => {
-      if (!isAnalyticsRoute()) return;
+      if (!isCurrentAnalyticsPage()) return;
       if (!isOfficialAnalyticsControlTarget(event.target)) return;
       scheduleUsageChartControlSync();
     };
@@ -3117,7 +3127,7 @@
     if (installUsageChartResizeSync.didInstall) return;
     installUsageChartResizeSync.didInstall = true;
     const sync = () => {
-      if (!isAnalyticsRoute() || usageChartResizeFrame) return;
+      if (!isCurrentAnalyticsPage() || usageChartResizeFrame) return;
       usageChartResizeFrame = requestAnimationFrame(() => {
         usageChartResizeFrame = 0;
         ensureDetailButton();
@@ -3152,14 +3162,14 @@
     window.clearTimeout(usageChartControlTimer);
     const sync = () => {
       usageChartControlTimer = 0;
-      if (!isAnalyticsRoute()) return;
+      if (!isCurrentAnalyticsPage()) return;
       ensureDetailButton();
       ensureUsageChartSwitch();
       if (usageChartMode === CHART_MODES.meter) renderMeterChartView();
     };
     usageChartControlTimer = window.setTimeout(sync, 180);
     window.setTimeout(() => {
-      if (isAnalyticsRoute()) {
+      if (isCurrentAnalyticsPage()) {
         ensureUsageChartSwitch();
         if (usageChartMode === CHART_MODES.meter) renderMeterChartView();
       }
