@@ -123,6 +123,7 @@
   const MESSAGES = {
     "zh-CN": {
       usageDetails: "使用详情",
+      analyticsUsageHistory: "使用历史",
       personalUsage: "个人使用",
       trigger: {
         title: "打开 Codex Meter",
@@ -159,6 +160,8 @@
         currentMeta: "从 {date} 开始统计",
         history: "周期外历史用量",
         historyRange: "{start} 至 {end}",
+        models: "本周期各模型 Token 用量",
+        modelsMeta: "费率覆盖 {coverage}% · 费率表 {date}",
       },
       metrics: {
         remaining: ["本周期剩余额度比例", "来自官方每周限额进度。"],
@@ -174,6 +177,9 @@
         projectionLag: "每日明细可能滞后，稍后更稳。",
         cache: ["输入缓存命中率", "缓存输入占全部输入 Tokens 的比例。"],
         usd: ["推算周价值", "按推算周 Credits × US$40/1000 估算。"],
+        weightedUsage: ["模型加权用量", "按模型及输入、缓存输入、输出费率计算；不是实际账单 Credits。"],
+        weightedCapacity: ["推算周加权容量", "模型加权用量 ÷ 官方周已用比例；Spark 独立额度不参与。"],
+        weightedUnavailable: ["暂不可用", "等待按模型 Token 明细和官方周比例。"],
       },
       table: {
         empty: "这个时间段还没有 Codex 用量记录。",
@@ -185,6 +191,17 @@
         usd: "折算金额",
         turns: "轮数",
         total: "合计",
+      },
+      modelTable: {
+        model: "模型",
+        tokens: "总 Tokens",
+        uncachedInput: "未缓存输入",
+        cachedInput: "缓存输入",
+        output: "输出",
+        cache: "缓存命中",
+        equivalent: "等值 Credits",
+        separate: "独立额度",
+        unavailable: "未定价",
       },
     },
     "zh-TW": {
@@ -321,6 +338,7 @@
     },
     "en-US": {
       usageDetails: "Usage details",
+      analyticsUsageHistory: "Usage history",
       personalUsage: "Personal usage",
       trigger: {
         title: "Open Codex Meter",
@@ -357,6 +375,8 @@
         currentMeta: "Counting from {date}",
         history: "Usage outside this cycle",
         historyRange: "{start} to {end}",
+        models: "Token usage by model this cycle",
+        modelsMeta: "Rate coverage {coverage}% · rate card {date}",
       },
       metrics: {
         remaining: ["Remaining quota this cycle", "From the official weekly quota progress."],
@@ -372,6 +392,9 @@
         projectionLag: "Daily details may lag; refresh later.",
         cache: ["Input cache hit rate", "Cached input as a share of all input Tokens."],
         usd: ["Projected weekly value", "Based on projected weekly Credits at US$40/1000."],
+        weightedUsage: ["Model-weighted usage", "Uses model-specific input, cached-input, and output rates; not billed Credits."],
+        weightedCapacity: ["Projected weighted weekly capacity", "Model-weighted usage ÷ official weekly used percent; Spark is excluded."],
+        weightedUnavailable: ["Unavailable", "Waiting for per-model Tokens and the official weekly percentage."],
       },
       table: {
         empty: "No Codex usage was recorded in this date range.",
@@ -383,6 +406,17 @@
         usd: "Estimated value",
         turns: "Turns",
         total: "Total",
+      },
+      modelTable: {
+        model: "Model",
+        tokens: "Total Tokens",
+        uncachedInput: "Uncached input",
+        cachedInput: "Cached input",
+        output: "Output",
+        cache: "Cache hit",
+        equivalent: "Credit equivalent",
+        separate: "Separate quota",
+        unavailable: "Unpriced",
       },
     },
     "ja-JP": {
@@ -887,7 +921,10 @@
   };
 
   const mainHeadings = () =>
-    [...document.querySelectorAll("main h1, main h2, main h3, main [role='heading']")]
+    [...document.querySelectorAll(
+      "main h1, main h2, main h3, main [role='heading'], " +
+      "[role='dialog'] h1, [role='dialog'] h2, [role='dialog'] h3, [role='dialog'] [role='heading']",
+    )]
       .filter(isRenderableElement)
       .filter((heading) => {
         const rect = heading.getBoundingClientRect();
@@ -1041,7 +1078,8 @@
   };
 
   const findUsageDetailsMount = () => {
-    const knownHeading = findKnownHeading("usageDetails");
+    const knownHeading =
+      findKnownHeading("usageDetails") || findKnownHeading("analyticsUsageHistory");
     if (knownHeading) return mountForHeading(knownHeading);
 
     const productLegendSection = findProductUsageSection();
@@ -2156,6 +2194,7 @@
   const renderReportBody = (report) => `
       <div class="cqc-status">${icon("check")}<span>${escapeHtml(t("updated", { time: report.capturedAtLocal }))}</span></div>
       ${renderSummaryCards(report)}
+      ${renderModelTokenSection(report)}
       ${renderDailySection(
         t("sections.current"),
         report.currentCycleList,
@@ -2177,7 +2216,11 @@
     `;
 
   const weeklyLimitWindow = (report) =>
-    (report.windows || []).find((window) => n(window.limitWindowSeconds) >= 6 * 24 * 60 * 60) ||
+    (report.windows || []).find(
+      (window) =>
+        n(window.limitWindowSeconds) >= 6 * 24 * 60 * 60 &&
+        !/spark/i.test(`${window?.key || ""} ${window?.label || ""}`),
+    ) ||
     report.primaryWindow ||
     null;
 
@@ -2267,11 +2310,31 @@
     };
   };
 
+  const weightedTokenProjection = (report) => {
+    const totals = report.currentModelTokenStats?.totals || {};
+    const window = weeklyLimitWindow(report);
+    const usedPercent = window?.usedPercent;
+    const current = n(totals.creditEquivalent);
+    const coverage = n(totals.rateCoverage);
+    const canEstimate = current > 0 && coverage > 0 && usedPercent != null && usedPercent > 0;
+    return {
+      canEstimate,
+      coverage,
+      current,
+      estimate: canEstimate ? current / (usedPercent / 100) : null,
+    };
+  };
+
   const renderSummaryCards = (report) => {
     const stats = report.currentStats;
     const weeklyWindow = weeklyLimitWindow(report);
     const projection = weeklyProjection(report);
+    const weighted = weightedTokenProjection(report);
     const remaining = weeklyWindow?.remainingPercent;
+    const weightedUnavailable = escapeHtml(t("metrics.weightedUnavailable.0"));
+    const weightedHint = weighted.canEstimate
+      ? t("metrics.weightedCapacity.1")
+      : t("metrics.weightedUnavailable.1");
     return `
       <div class="cqc-grid">
         ${renderMetricCard("gauge", t("metrics.remaining.0"), remaining == null ? "N/A" : `${remaining.toFixed(1)}%`, "fresh", true, t("metrics.remaining.1"))}
@@ -2280,6 +2343,76 @@
         ${renderMetricCard("trendingUp", t("metrics.projected.0"), projection.value, "amber", false, projection.hint)}
         ${renderMetricCard("layers", t("metrics.cache.0"), `${(stats.cacheRatio * 100).toFixed(1)}%`, "violet", false, t("metrics.cache.1"))}
         ${renderMetricCard("wallet", t("metrics.usd.0"), projection.usdValue, "ink", false, projection.usdHint)}
+        ${renderMetricCard("cpu", t("metrics.weightedUsage.0"), weighted.current > 0 ? `~${fmtCredits(weighted.current, weighted.current >= 1000 ? 0 : 1)}` : weightedUnavailable, "blue", false, t("metrics.weightedUsage.1"))}
+        ${renderMetricCard("trendingUp", t("metrics.weightedCapacity.0"), weighted.canEstimate ? `~${fmtCredits(weighted.estimate, weighted.estimate >= 1000 ? 0 : 1)}` : weightedUnavailable, "amber", false, weightedHint)}
+      </div>
+    `;
+  };
+
+  const renderModelTokenSection = (report) => {
+    const stats = report.currentModelTokenStats;
+    const models = stats?.models || [];
+    if (!models.length) return "";
+    const totals = stats.totals || {};
+    const coverage = Math.round(n(totals.rateCoverage) * 100);
+    const meta = t("sections.modelsMeta", {
+      coverage,
+      date: report.tokenRateCardDate || "--",
+    });
+    return `
+      <div class="cqc-section-title">
+        <span>${icon("cpu")}${escapeHtml(t("sections.models"))}</span>
+        <span>${escapeHtml(meta)}</span>
+      </div>
+      <div class="cqc-table-wrap">
+        <table class="cqc-table cqc-model-table">
+          <thead>
+            <tr>
+              <th>${escapeHtml(t("modelTable.model"))}</th>
+              <th>${escapeHtml(t("modelTable.tokens"))}</th>
+              <th>${escapeHtml(t("modelTable.uncachedInput"))}</th>
+              <th>${escapeHtml(t("modelTable.cachedInput"))}</th>
+              <th>${escapeHtml(t("modelTable.output"))}</th>
+              <th>${escapeHtml(t("modelTable.cache"))}</th>
+              <th>${escapeHtml(t("modelTable.equivalent"))}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${models
+              .map((model) => {
+                const input = n(model.uncachedInputTokens) + n(model.cachedInputTokens);
+                const modelCacheRatio = input > 0 ? n(model.cachedInputTokens) / input : 0;
+                const equivalent = model.separateQuota
+                  ? t("modelTable.separate")
+                  : model.hasRate
+                    ? fmtCredits(model.creditEquivalent, model.creditEquivalent >= 1000 ? 0 : 2)
+                    : t("modelTable.unavailable");
+                return `
+                  <tr>
+                    <td class="cqc-model-name">${escapeHtml(model.model)}</td>
+                    <td class="cqc-mono">${fmtNum(model.tokens)}</td>
+                    <td class="cqc-mono">${fmtNum(model.uncachedInputTokens)}</td>
+                    <td class="cqc-mono">${fmtNum(model.cachedInputTokens)}</td>
+                    <td class="cqc-mono">${fmtNum(model.outputTokens)}</td>
+                    <td class="cqc-mono">${(modelCacheRatio * 100).toFixed(0)}%</td>
+                    <td class="cqc-mono">${escapeHtml(equivalent)}</td>
+                  </tr>
+                `;
+              })
+              .join("")}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>${escapeHtml(t("table.total"))}</td>
+              <td class="cqc-mono">${fmtNum(totals.tokens)}</td>
+              <td class="cqc-mono">${fmtNum(totals.uncachedInputTokens)}</td>
+              <td class="cqc-mono">${fmtNum(totals.cachedInputTokens)}</td>
+              <td class="cqc-mono">${fmtNum(totals.outputTokens)}</td>
+              <td class="cqc-mono">${(n(totals.cacheRatio) * 100).toFixed(0)}%</td>
+              <td class="cqc-mono">${fmtCredits(totals.creditEquivalent, totals.creditEquivalent >= 1000 ? 0 : 2)}</td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
     `;
   };
@@ -2921,6 +3054,7 @@
     patch("pushState");
     patch("replaceState");
     window.addEventListener("popstate", notify);
+    window.addEventListener("hashchange", notify);
     window.__codexMeterMutationObserver?.disconnect?.();
     window.__codexMeterMutationObserver = null;
     window.clearInterval(window.__codexMeterRouteInterval);

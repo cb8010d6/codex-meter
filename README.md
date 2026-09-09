@@ -15,7 +15,7 @@
 <p align="center">
   <a href="https://github.com/Wangnov/codex-meter/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-2ea44f" alt="MIT license"></a>
   <a href="https://github.com/Wangnov/codex-meter"><img src="https://img.shields.io/badge/Chrome-MV3-4285f4?logo=googlechrome&logoColor=white" alt="Chrome MV3"></a>
-  <a href="https://chatgpt.com/codex/cloud/settings/analytics"><img src="https://img.shields.io/badge/Codex-analytics-111111" alt="Codex analytics"></a>
+  <a href="https://chatgpt.com/#settings/Analytics"><img src="https://img.shields.io/badge/Codex-analytics-111111" alt="Codex analytics"></a>
 </p>
 
 <p align="center">
@@ -53,11 +53,12 @@
 
 ## 功能
 
-- 在 `https://chatgpt.com/codex/cloud/settings/analytics` 的「使用详情」右侧加入 `Codex Meter` 按钮
+- 在 `https://chatgpt.com/#settings/Analytics` 的「使用历史」旁加入 `Codex Meter` 按钮，同时兼容旧版 `/codex/cloud/settings/analytics` 页面
 - 在官方「按来源」图表旁加入 `Meter` 图表视图，支持 Credits、总 Tokens、折算金额、轮数等指标
 - 浏览器扩展弹窗提供页面内按钮、图表控制和默认图表模式管理
 - Meter 图表跟随页面顶部的 7 天 / 1 个月 / 自定义范围，以及天 / 周分组方式
 - 总 Tokens 图表按未缓存输入、缓存输入、输出 Tokens 分层展示
+- 按模型展示本周期未缓存输入、缓存输入、输出 Tokens，并根据公开费率计算非账单性质的 Credit 等值和周容量估算；Spark 始终按独立额度处理
 - 使用 Codex 页面 CSS 变量，跟随浅色 / 深色主题
 - 按页面 locale 自动切换文案，内置 `zh-CN`、`zh-TW`、`zh-HK`、`en-US`、`ja-JP`、`fr-FR`、`ru-RU`、`es-ES`、`de-DE`
 - 统计本周期 Credits、总 Tokens、输入 Tokens、缓存命中率、推算周额度和折算金额
@@ -85,7 +86,7 @@ codex-meter/codex-meter-extension
 
 ## 使用
 
-1. 打开 <https://chatgpt.com/codex/cloud/settings/analytics>
+1. 打开 <https://chatgpt.com/#settings/Analytics>（旧版 `/codex/cloud/settings/analytics` 页面也受支持）
 2. 点击「使用详情」右侧的 `Codex Meter`
 3. 在页面内弹窗里刷新、查看明细，或导出 JSON / CSV；在浏览器扩展弹窗里管理显示开关和本地快照
 
@@ -106,6 +107,11 @@ find codex-meter-extension -name '*.js' -maxdepth 3 -print0 | xargs -0 -n1 node 
 
 # manifest 检查
 node -e "JSON.parse(require('fs').readFileSync('codex-meter-extension/manifest.json','utf8'))"
+
+# 领域计算与接口适配测试
+node tests/config.test.js
+node tests/usage-domain.test.js
+node tests/report-service.test.js
 
 # 本地打包
 rm -f codex-meter-extension.zip
@@ -139,11 +145,12 @@ It does not require another login and does not store your ChatGPT Web token. Whe
 
 ## Features
 
-- Adds a `Codex Meter` button beside Usage details on `https://chatgpt.com/codex/cloud/settings/analytics`
+- Adds a `Codex Meter` button beside Usage history on `https://chatgpt.com/#settings/Analytics`, while retaining support for the legacy `/codex/cloud/settings/analytics` page
 - Adds a `Meter` chart view beside the official source chart, with Credits, total Tokens, estimated USD value, and turns
 - Provides an extension popup for managing in-page visibility, chart controls, and default chart mode
 - Follows the page-level 7 days / 1 month / custom range and day / week grouping controls
 - Shows total Tokens as uncached input, cached input, and output token layers
+- Breaks current-cycle Tokens down by model and input/cache/output type, with a non-billing credit-equivalent weekly-capacity estimate; Spark always remains a separate quota
 - Uses Codex page CSS variables and follows light / dark theme where available
 - Follows the page locale, with copy for `zh-CN`, `zh-TW`, `zh-HK`, `en-US`, `ja-JP`, `fr-FR`, `ru-RU`, `es-ES`, and `de-DE`
 - Shows cycle Credits, total Tokens, input Tokens, cache hit rate, projected weekly Credits, and estimated USD value
@@ -171,7 +178,7 @@ codex-meter/codex-meter-extension
 
 ## Use
 
-1. Open <https://chatgpt.com/codex/cloud/settings/analytics>
+1. Open <https://chatgpt.com/#settings/Analytics> (the legacy `/codex/cloud/settings/analytics` page is also supported)
 2. Click `Codex Meter` beside Usage details
 3. Refresh, review daily rows, or export JSON / CSV from the in-page modal; use the extension popup to manage display settings and local snapshots
 
@@ -192,6 +199,11 @@ find codex-meter-extension -name '*.js' -maxdepth 3 -print0 | xargs -0 -n1 node 
 
 # manifest check
 node -e "JSON.parse(require('fs').readFileSync('codex-meter-extension/manifest.json','utf8'))"
+
+# Domain and endpoint adaptation tests
+node tests/config.test.js
+node tests/usage-domain.test.js
+node tests/report-service.test.js
 
 # local package
 rm -f codex-meter-extension.zip

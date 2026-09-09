@@ -5,7 +5,7 @@ This extension is intentionally buildless, so each layer is loaded as a classic 
 ## Layers
 
 - `domain/usage-domain.js`
-  - Pure usage rules: token totals, input totals, cache ratio, limit-window normalization, cycle stats, compact report shape, and numeric formatting.
+  - Pure usage rules: token totals, input totals, cache ratio, per-model token/rate aggregation, limit-window normalization, cycle stats, compact report shape, and numeric formatting.
   - Does not read DOM, call Chrome APIs, or fetch network data.
 
 - `application/report-service.js`

@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const { CONFIG, DEFAULT_SETTINGS, ROUTES } = window.CodexMeterConfig;
+  const { CONFIG, DEFAULT_SETTINGS, ROUTES, isAnalyticsRoute } = window.CodexMeterConfig;
   const domain = window.CodexMeterDomain;
   const reportRepository = window.CodexMeterReportRepository;
 
@@ -216,8 +216,7 @@
 
   const isAnalyticsUrl = (url) => {
     try {
-      const parsed = new URL(url);
-      return parsed.origin === ROUTES.analyticsOrigin && parsed.pathname === ROUTES.analyticsPath;
+      return isAnalyticsRoute(new URL(url));
     } catch {
       return false;
     }

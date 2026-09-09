@@ -4,7 +4,7 @@ Local Chrome extension for the ChatGPT Codex analytics page.
 
 ## What It Does
 
-- Adds a `Codex Meter` button to the right side of the usage details area on `https://chatgpt.com/codex/cloud/settings/analytics`.
+- Adds a `Codex Meter` button beside Usage history on `https://chatgpt.com/#settings/Analytics`, while retaining support for the legacy `/codex/cloud/settings/analytics` page.
 - Opens a native-feeling Codex in-page modal for credits, token totals, cache hit rate, and estimated value.
 - Uses the browser extension popup as a management panel for the in-page button, chart controls, default chart mode, and local snapshots.
 - Keeps the modal at a stable size with a skeleton loading state while data is being fetched.
@@ -12,6 +12,7 @@ Local Chrome extension for the ChatGPT Codex analytics page.
 - Follows the Codex page locale from `client-bootstrap.locale` / `html[lang]` using official-style locale IDs. Included UI copy: `zh-CN`, `zh-TW`, `zh-HK`, `en-US`, `ja-JP`, `fr-FR`, `ru-RU`, `es-ES`, and `de-DE`, with English fallback.
 - Reads the same private `wham` analytics endpoints used by the page.
 - Shows current-cycle credits, total tokens, input tokens, cache hit rate, estimated USD value, and daily usage rows in the page modal.
+- Reads the optional per-model token breakdown endpoint and shows uncached input, cached input, output, and a non-billing credit-equivalent estimate. Models with separate limits such as Spark are excluded from the general weekly estimate.
 - Saves compact local snapshots in `chrome.storage.local`.
 - Exports the latest page-level data as JSON or CSV.
 - Uses local inline Lucide-style SVG icons; no remote icon script is loaded.
@@ -31,7 +32,7 @@ codex-meter/codex-meter-extension
 
 ## Use
 
-1. Open <https://chatgpt.com/codex/cloud/settings/analytics>.
+1. Open <https://chatgpt.com/#settings/Analytics> (the legacy `/codex/cloud/settings/analytics` page is also supported).
 2. Click the `Codex Meter` button beside the usage details area.
 3. Use the page modal for usage details and export; use the extension popup to manage display settings and local snapshots.
 

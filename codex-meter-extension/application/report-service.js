@@ -34,18 +34,37 @@
         labelFromPath,
         locale: getPageLocale(),
       });
-      const primaryWindow = windows[0] || null;
+      const primaryWindow =
+        windows.find(
+          (window) =>
+            Number(window?.limitWindowSeconds) >= 6 * 24 * 60 * 60 &&
+            !/spark/i.test(`${window?.key || ""} ${window?.label || ""}`),
+        ) ||
+        windows[0] ||
+        null;
       const cycleStartDate = primaryWindow?.cycleStart || startDate;
-      const dailyData = await chatGptClient.apiGet(
-        `/backend-api/wham/analytics/daily-workspace-usage-counts?start_date=${startDate}&end_date=${endDate}&group_by=day`,
-        token,
-      );
+      const [dailyData, tokenBreakdownData] = await Promise.all([
+        chatGptClient.apiGet(
+          `/backend-api/wham/analytics/daily-workspace-usage-counts?start_date=${startDate}&end_date=${endDate}&group_by=day`,
+          token,
+        ),
+        chatGptClient
+          .apiGet(
+            `/backend-api/wham/usage/daily-token-usage-breakdown?start_date=${startDate}&end_date=${endDate}&group_by=day`,
+            token,
+          )
+          .catch(() => null),
+      ]);
       const dailyList = Array.isArray(dailyData?.data) ? dailyData.data : [];
+      const tokenBreakdownList = Array.isArray(tokenBreakdownData?.data) ? tokenBreakdownData.data : [];
       const currentCycleList = dailyList.filter(
         (item) => item?.date && new Date(`${item.date}T00:00:00`) >= new Date(`${cycleStartDate}T00:00:00`),
       );
       const historyList = dailyList.filter(
         (item) => item?.date && new Date(`${item.date}T00:00:00`) < new Date(`${cycleStartDate}T00:00:00`),
+      );
+      const currentTokenBreakdownList = tokenBreakdownList.filter(
+        (item) => item?.date && new Date(`${item.date}T00:00:00`) >= new Date(`${cycleStartDate}T00:00:00`),
       );
 
       return {
@@ -61,9 +80,18 @@
         currentCycleList,
         historyList,
         dailyList,
+        tokenBreakdownList,
+        currentTokenBreakdownList,
         currentStats: domain.getStats(currentCycleList),
         historyStats: domain.getStats(historyList),
         totalStats: domain.getStats(dailyList),
+        currentModelTokenStats: domain.getModelTokenStats(
+          currentTokenBreakdownList,
+          config.TOKEN_CREDIT_RATES,
+        ),
+        modelTokenStats: domain.getModelTokenStats(tokenBreakdownList, config.TOKEN_CREDIT_RATES),
+        tokenRateCardDate: config.TOKEN_RATE_CARD_DATE,
+        tokenRateCardUrl: config.TOKEN_RATE_CARD_URL,
       };
     };
 

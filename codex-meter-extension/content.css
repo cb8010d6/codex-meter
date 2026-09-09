@@ -936,6 +936,19 @@
   font-weight: 600;
 }
 
+.cqc-model-table {
+  min-width: 1040px;
+}
+
+.cqc-model-table th:first-child,
+.cqc-model-table td:first-child {
+  width: 190px;
+}
+
+.cqc-model-name {
+  font-weight: 500;
+}
+
 .cqc-mono {
   font-family: var(--cqc-font);
 }
