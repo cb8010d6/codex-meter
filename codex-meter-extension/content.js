@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const CONTENT_SCRIPT_VERSION = "0.4.22";
+  const CONTENT_SCRIPT_VERSION = "0.4.22-quota-duration";
   const ENABLE_CHART_TOOLTIP_ENHANCER = false;
   const CHART_IDS = {
     controls: "codex-meter-chart-controls",
@@ -2266,15 +2266,16 @@
         n(window.limitWindowSeconds) >= 6 * 24 * 60 * 60 &&
         !/spark/i.test(`${window?.key || ""} ${window?.label || ""}`),
     ) ||
-    report.primaryWindow ||
+    (n(report.primaryWindow?.limitWindowSeconds) >= 6 * 24 * 60 * 60
+      ? report.primaryWindow
+      : null) ||
     null;
 
   const isShortLimitWindow = (window) => {
-    const identity = `${window?.key || ""} ${window?.label || ""}`;
-    return (
-      (window?.limitWindowSeconds != null && n(window.limitWindowSeconds) < 24 * 60 * 60) ||
-      /secondary|5[ -]?hour|5\s*小时|5\s*小時/i.test(identity)
-    );
+    // primary/secondary identify API slots, not durations. In particular,
+    // secondary_window may be weekly and must never also populate the 5h card.
+    const seconds = Number(window?.limitWindowSeconds);
+    return Number.isFinite(seconds) && seconds > 0 && seconds < 24 * 60 * 60;
   };
 
   const shortLimitWindow = (report) =>
