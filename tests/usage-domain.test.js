@@ -9,7 +9,12 @@ vm.runInNewContext(
   sandbox,
 );
 
-const { compactReport, getModelTokenStats } = sandbox.window.CodexMeterDomain;
+const {
+  compactReport,
+  extractAdditionalLimitWindows,
+  extractOrdinaryLimitWindows,
+  getModelTokenStats,
+} = sandbox.window.CodexMeterDomain;
 const rates = {
   "gpt-5.6-sol": { uncachedInput: 100, cachedInput: 10, output: 500 },
 };
@@ -67,6 +72,7 @@ assert.equal(report.totals.ratedTokens, 3_700_000);
 assert.ok(Math.abs(report.totals.rateCoverage - 3_700_000 / 4_100_000) < 1e-12);
 
 const compact = compactReport({
+  customWindows: [{ source: "spark", kind: "weekly", remainingPercent: 80 }],
   tokenBreakdownList: [{ date: "2026-09-09", models: [{ model: "gpt-5.6-sol" }] }],
   currentTokenBreakdownList: [{ date: "2026-09-09", models: [{ model: "gpt-5.6-sol" }] }],
   modelTokenStats: report,
@@ -75,5 +81,35 @@ const compact = compactReport({
 assert.equal("tokenBreakdownList" in compact, false);
 assert.equal("currentTokenBreakdownList" in compact, false);
 assert.equal(compact.currentModelTokenStats.totals.creditEquivalent, 270);
+assert.equal(compact.customWindows[0].source, "spark");
+
+const windowValue = (seconds, usedPercent) => ({
+  reset_at: 1788998400,
+  limit_window_seconds: seconds,
+  used_percent: usedPercent,
+});
+const ordinaryWindows = extractOrdinaryLimitWindows({
+  primary_window: windowValue(5 * 60 * 60, 91),
+  secondary_window: windowValue(5 * 60 * 60, 44),
+  tertiary_window: windowValue(7 * 24 * 60 * 60, 22),
+});
+assert.equal(ordinaryWindows.some((window) => window.key === "primary_window"), false);
+assert.equal(ordinaryWindows.find((window) => window.key === "secondary_window").usedPercent, 44);
+assert.equal(ordinaryWindows.find((window) => window.key === "tertiary_window").usedPercent, 22);
+
+const sparkWindows = extractAdditionalLimitWindows([
+  {
+    limit_name: "GPT-5.3-Codex-Spark Weekly",
+    metered_feature: "codex_bengalfox",
+    rate_limit: {
+      primary_window: windowValue(5 * 60 * 60, 12),
+      secondary_window: windowValue(7 * 24 * 60 * 60, 20),
+    },
+  },
+]);
+assert.equal(sparkWindows.length, 2);
+assert.equal(sparkWindows.find((window) => window.kind === "short").usedPercent, 12);
+assert.equal(sparkWindows.find((window) => window.kind === "weekly").usedPercent, 20);
+assert.equal(sparkWindows.every((window) => window.source === "spark"), true);
 
 console.log("usage-domain tests passed");

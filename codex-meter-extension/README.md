@@ -13,6 +13,7 @@ Local Chrome extension for the ChatGPT Codex analytics page.
 - Follows the Codex page locale from `client-bootstrap.locale` / `html[lang]` using official-style locale IDs. Included UI copy: `zh-CN`, `zh-TW`, `zh-HK`, `en-US`, `ja-JP`, `fr-FR`, `ru-RU`, `es-ES`, and `de-DE`, with English fallback.
 - Reads the same private `wham` analytics endpoints used by the page.
 - Shows current-cycle credits, total tokens, input tokens, cache hit rate, estimated USD value, and daily usage rows in the page modal.
+- Separately shows ordinary Codex and Spark 5-hour/weekly quota windows without mixing their percentages.
 - Reads the optional per-model token breakdown endpoint and shows uncached input, cached input, output, and a non-billing credit-equivalent estimate. Models with separate limits such as Spark are excluded from the general weekly estimate.
 - Hides model-weighted cards and the model table when plans such as Pro do not expose a workspace model breakdown.
 - Notes that quota percentages are near real time while model token and Credits details may lag, making projections approximate.

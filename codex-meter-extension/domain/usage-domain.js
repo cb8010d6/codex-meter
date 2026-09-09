@@ -122,6 +122,21 @@
   const formatUsd = (credits, usdPerCredit) =>
     `$ ${(n(credits) * n(usdPerCredit)).toFixed(2)}`;
 
+  const DAY_SECONDS = 24 * 60 * 60;
+
+  const isSubDayLimitWindow = (window) => {
+    const seconds = n(window?.limitWindowSeconds);
+    return seconds > 0 && seconds < DAY_SECONDS;
+  };
+
+  const windowRoleFromPath = (path) => {
+    const role = [...path]
+      .reverse()
+      .map((part) => String(part).toLowerCase().replace(/_window$/, ""))
+      .find((part) => /^(primary|secondary|tertiary)$/.test(part));
+    return role || null;
+  };
+
   const normalizeLimitWindow = (value, path, { labelFromPath, locale } = {}) => {
     const usedPercent =
       value.used_percent != null
@@ -143,6 +158,7 @@
     return {
       key: path.join("."),
       label: labelFromPath?.(path) || path.join("."),
+      role: windowRoleFromPath(path),
       usedPercent,
       remainingPercent,
       resetAt: resetAt || null,
@@ -193,6 +209,60 @@
     });
   };
 
+  const isSparkLimit = (limit = {}) => {
+    const name = String(limit.limit_name ?? "").toLowerCase();
+    const feature = String(limit.metered_feature ?? "").toLowerCase();
+    return feature === "codex_bengalfox" || name.includes("gpt-5.3-codex-spark");
+  };
+
+  const extractAdditionalLimitWindows = (additionalRateLimits, options = {}) => {
+    if (!Array.isArray(additionalRateLimits)) return [];
+
+    return additionalRateLimits.flatMap((limit, index) => {
+      if (!isSparkLimit(limit)) return [];
+      const windows = extractLimitWindows(limit.rate_limit || {}, options);
+      if (!windows.length) return [];
+
+      const weeklyCandidates = windows.filter(
+        (window) => window.limitWindowSeconds == null || window.limitWindowSeconds >= DAY_SECONDS,
+      );
+      const shortCandidates = windows.filter(isSubDayLimitWindow);
+      const selectedWeekly = [...weeklyCandidates].sort(
+        (a, b) => n(b.limitWindowSeconds) - n(a.limitWindowSeconds),
+      )[0];
+      const selectedShort = [...shortCandidates].sort(
+        (a, b) => n(b.limitWindowSeconds) - n(a.limitWindowSeconds),
+      )[0];
+      const result = [];
+      if (selectedWeekly) {
+        result.push({
+          ...selectedWeekly,
+          key: `additional_rate_limits.${index}.spark_weekly`,
+          label: "GPT-5.3-Codex-Spark Weekly",
+          source: "spark",
+          kind: "weekly",
+        });
+      }
+      if (selectedShort) {
+        result.push({
+          ...selectedShort,
+          key: `additional_rate_limits.${index}.spark_short`,
+          label: "GPT-5.3-Codex-Spark 5-hour",
+          source: "spark",
+          kind: "short",
+        });
+      }
+      return result;
+    });
+  };
+
+  // Ordinary and Spark limits share a shape. A sub-day primary in the ordinary
+  // tree is not the generic Codex 5-hour allowance, so keep it out of that card.
+  const extractOrdinaryLimitWindows = (root, options = {}) =>
+    extractLimitWindows(root, options).filter(
+      (window) => !(window.role === "primary" && isSubDayLimitWindow(window)),
+    );
+
   const getStats = (list) => {
     const totals = list.reduce(
       (sum, row) => {
@@ -231,6 +301,7 @@
     endDate: report.endDate,
     cycleStartDate: report.cycleStartDate,
     windows: report.windows,
+    customWindows: report.customWindows || [],
     primaryWindow: report.primaryWindow,
     currentStats: report.currentStats,
     historyStats: report.historyStats,
@@ -248,12 +319,15 @@
     addDays,
     cacheRatio,
     compactReport,
+    extractAdditionalLimitWindows,
     extractLimitWindows,
+    extractOrdinaryLimitWindows,
     formatCredits,
     formatNumber,
     formatUsd,
     getModelTokenStats,
     getStats,
+    isSubDayLimitWindow,
     localDate,
     n,
     tokenInput,

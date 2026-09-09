@@ -59,6 +59,7 @@
 - 浏览器扩展弹窗提供页面内按钮、图表控制和默认图表模式管理
 - Meter 图表跟随页面顶部的 7 天 / 1 个月 / 自定义范围，以及天 / 周分组方式
 - 总 Tokens 图表按未缓存输入、缓存输入、输出 Tokens 分层展示
+- 分开显示普通 Codex 的 5 小时/每周额度与 Spark 的 5 小时/每周额度，避免不同窗口互相串位
 - 按模型展示本周期未缓存输入、缓存输入、输出 Tokens，并根据公开费率计算非账单性质的 Credit 等值和周容量估算；Spark 始终按独立额度处理
 - Pro 等无 workspace 模型明细的账号会自动隐藏模型加权卡片和模型表，不显示误导性的空数据
 - 明确提示官方额度百分比接近实时，而模型 Tokens 与 Credits 明细可能延迟，相关推算存在误差
@@ -155,6 +156,7 @@ It does not require another login and does not store your ChatGPT Web token. Whe
 - Provides an extension popup for managing in-page visibility, chart controls, and default chart mode
 - Follows the page-level 7 days / 1 month / custom range and day / week grouping controls
 - Shows total Tokens as uncached input, cached input, and output token layers
+- Separately shows ordinary Codex and Spark 5-hour/weekly quota windows so their percentages cannot be mixed
 - Breaks current-cycle Tokens down by model and input/cache/output type, with a non-billing credit-equivalent weekly-capacity estimate; Spark always remains a separate quota
 - Automatically hides model-weighted cards and the model table for plans such as Pro when no workspace model breakdown is available
 - Warns that official quota percentages are near real time while model Tokens and Credits details may lag, so projections can differ

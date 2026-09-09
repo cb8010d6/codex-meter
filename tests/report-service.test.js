@@ -32,6 +32,24 @@ const makeService = ({ breakdownFails = false } = {}) => {
               limit_window_seconds: 604800,
             },
           },
+          additional_rate_limits: [
+            {
+              limit_name: "GPT-5.3-Codex-Spark Weekly",
+              metered_feature: "codex_bengalfox",
+              rate_limit: {
+                primary_window: {
+                  used_percent: 10,
+                  reset_at: 1788998400,
+                  limit_window_seconds: 18000,
+                },
+                secondary_window: {
+                  used_percent: 20,
+                  reset_at: 1788998400,
+                  limit_window_seconds: 604800,
+                },
+              },
+            },
+          ],
         };
       }
       if (url.includes("daily-workspace-user-token-usage-breakdown")) {
@@ -86,6 +104,8 @@ const makeService = ({ breakdownFails = false } = {}) => {
   );
   assert.equal(report.modelTokenStats.models[0].model, "gpt-5.6-sol");
   assert.equal(report.modelTokenStats.totals.creditEquivalent, 100);
+  assert.equal(report.customWindows.find((window) => window.kind === "short").usedPercent, 10);
+  assert.equal(report.customWindows.find((window) => window.kind === "weekly").usedPercent, 20);
 
   const fallback = makeService({ breakdownFails: true });
   const fallbackReport = await fallback.service.buildReport();
