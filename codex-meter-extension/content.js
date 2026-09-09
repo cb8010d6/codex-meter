@@ -37,7 +37,13 @@
   }
   window.__codexQuotaCompassInstalled = CONTENT_SCRIPT_VERSION;
 
-  const { CONFIG, DEFAULT_SETTINGS, IDS, isAnalyticsRoute } = window.CodexMeterConfig;
+  const {
+    CONFIG,
+    DEFAULT_SETTINGS,
+    IDS,
+    isAnalyticsRoute,
+    isSettingsAnalyticsRoute,
+  } = window.CodexMeterConfig;
   const domain = window.CodexMeterDomain;
   const chatGptClient = window.CodexMeterChatGptClient;
   const reportRepository = window.CodexMeterReportRepository;
@@ -1085,6 +1091,12 @@
     const productLegendSection = findProductUsageSection();
     if (productLegendSection) {
       return mountForHeading(sectionHeading(productLegendSection) || headingNearSection(productLegendSection));
+    }
+
+    // ChatGPT currently ignores #settings/Analytics during some hard reloads.
+    // Keep the Meter reachable while the URL still identifies the Analytics route.
+    if (isSettingsAnalyticsRoute()) {
+      return { heading: document.body, section: document.body, placement: "fixed" };
     }
 
     return null;
@@ -3039,7 +3051,17 @@
       const needsButton = isAnalyticsRoute() && meterSettings.showPageButton && !hasButton;
       const needsChartSwitch = isAnalyticsRoute() && meterSettings.showChartControls && !hasChartSwitch;
       const staleButton = !isAnalyticsRoute() && hasButton;
-      if (!routeChanged && !needsButton && !needsChartSwitch && !staleButton) return;
+      const fixedButtonCanRemount =
+        hasButton &&
+        document.getElementById(IDS.button)?.dataset.placement === "fixed" &&
+        Boolean(findKnownHeading("usageDetails") || findKnownHeading("analyticsUsageHistory"));
+      if (
+        !routeChanged &&
+        !needsButton &&
+        !needsChartSwitch &&
+        !staleButton &&
+        !fixedButtonCanRemount
+      ) return;
       lastRoute = route;
       notify();
     };

@@ -17,7 +17,7 @@ vm.runInNewContext(
   sandbox,
 );
 
-const { isAnalyticsRoute } = sandbox.window.CodexMeterConfig;
+const { isAnalyticsRoute, isSettingsAnalyticsRoute } = sandbox.window.CodexMeterConfig;
 
 assert.equal(
   isAnalyticsRoute({ origin: "https://chatgpt.com", pathname: "/codex/cloud/settings/analytics", hash: "" }),
@@ -37,6 +37,23 @@ assert.equal(
 );
 assert.equal(
   isAnalyticsRoute({ origin: "https://chatgpt.com", pathname: "/", hash: "#settings/DataControls" }),
+  false,
+);
+assert.equal(
+  isSettingsAnalyticsRoute({ origin: "https://chatgpt.com", pathname: "/", hash: "#settings/Analytics" }),
+  true,
+);
+assert.equal(
+  isSettingsAnalyticsRoute({ origin: "https://chatgpt.com", pathname: "/codex/cloud/settings/analytics", hash: "" }),
+  false,
+);
+sandbox.window.__codexMeterInitialAnalyticsRoute = true;
+assert.equal(
+  isSettingsAnalyticsRoute({ origin: "https://chatgpt.com", pathname: "/", hash: "#settings" }),
+  true,
+);
+assert.equal(
+  isSettingsAnalyticsRoute({ origin: "https://chatgpt.com", pathname: "/", hash: "#settings/DataControls" }),
   false,
 );
 

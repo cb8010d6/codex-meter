@@ -24,6 +24,11 @@
   "content_scripts": [
     {
       "matches": ["https://chatgpt.com/*"],
+      "js": ["route-bootstrap.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://chatgpt.com/*"],
       "js": [
         "icons.js",
         "shared/config.js",

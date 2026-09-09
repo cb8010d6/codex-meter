@@ -50,13 +50,17 @@
       .replace(/\/+$/, "")
       .toLowerCase();
 
+  const isSettingsAnalyticsRoute = (currentLocation = window.location) =>
+    currentLocation.origin === ROUTES.analyticsOrigin &&
+    currentLocation.pathname === ROUTES.settingsAnalyticsPath &&
+    (normalizedHash(currentLocation.hash) === ROUTES.settingsAnalyticsHash ||
+      (window.__codexMeterInitialAnalyticsRoute === true &&
+        normalizedHash(currentLocation.hash) === "#settings"));
+
   const isAnalyticsRoute = (currentLocation = window.location) => {
     if (currentLocation.origin !== ROUTES.analyticsOrigin) return false;
     if (currentLocation.pathname === ROUTES.analyticsPath) return true;
-    return (
-      currentLocation.pathname === ROUTES.settingsAnalyticsPath &&
-      normalizedHash(currentLocation.hash) === ROUTES.settingsAnalyticsHash
-    );
+    return isSettingsAnalyticsRoute(currentLocation);
   };
 
   window.CodexMeterConfig = {
@@ -65,5 +69,6 @@
     IDS,
     ROUTES,
     isAnalyticsRoute,
+    isSettingsAnalyticsRoute,
   };
 })();

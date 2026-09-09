@@ -5,6 +5,7 @@ Local Chrome extension for the ChatGPT Codex analytics page.
 ## What It Does
 
 - Adds a `Codex Meter` button beside Usage history on `https://chatgpt.com/#settings/Analytics`, while retaining support for the legacy `/codex/cloud/settings/analytics` page.
+- Keeps a fixed Meter entry available if ChatGPT rewrites the Analytics hash to generic `#settings` during a hard reload.
 - Opens a native-feeling Codex in-page modal for credits, token totals, cache hit rate, and estimated value.
 - Uses the browser extension popup as a management panel for the in-page button, chart controls, default chart mode, and local snapshots.
 - Keeps the modal at a stable size with a skeleton loading state while data is being fetched.

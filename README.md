@@ -54,6 +54,7 @@
 ## 功能
 
 - 在 `https://chatgpt.com/#settings/Analytics` 的「使用历史」旁加入 `Codex Meter` 按钮，同时兼容旧版 `/codex/cloud/settings/analytics` 页面
+- 即使 ChatGPT 在硬刷新时把 Analytics hash 改写成通用 `#settings`，仍保留固定的 Meter 入口
 - 在官方「按来源」图表旁加入 `Meter` 图表视图，支持 Credits、总 Tokens、折算金额、轮数等指标
 - 浏览器扩展弹窗提供页面内按钮、图表控制和默认图表模式管理
 - Meter 图表跟随页面顶部的 7 天 / 1 个月 / 自定义范围，以及天 / 周分组方式
@@ -110,6 +111,7 @@ node -e "JSON.parse(require('fs').readFileSync('codex-meter-extension/manifest.j
 
 # 领域计算与接口适配测试
 node tests/config.test.js
+node tests/route-bootstrap.test.js
 node tests/usage-domain.test.js
 node tests/report-service.test.js
 
@@ -146,6 +148,7 @@ It does not require another login and does not store your ChatGPT Web token. Whe
 ## Features
 
 - Adds a `Codex Meter` button beside Usage history on `https://chatgpt.com/#settings/Analytics`, while retaining support for the legacy `/codex/cloud/settings/analytics` page
+- Keeps a fixed Meter entry available when ChatGPT rewrites the Analytics hash to the generic `#settings` route during a hard reload
 - Adds a `Meter` chart view beside the official source chart, with Credits, total Tokens, estimated USD value, and turns
 - Provides an extension popup for managing in-page visibility, chart controls, and default chart mode
 - Follows the page-level 7 days / 1 month / custom range and day / week grouping controls
@@ -202,6 +205,7 @@ node -e "JSON.parse(require('fs').readFileSync('codex-meter-extension/manifest.j
 
 # Domain and endpoint adaptation tests
 node tests/config.test.js
+node tests/route-bootstrap.test.js
 node tests/usage-domain.test.js
 node tests/report-service.test.js
 
