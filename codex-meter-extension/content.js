@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const CONTENT_SCRIPT_VERSION = "0.4.22-quota-duration";
+  const CONTENT_SCRIPT_VERSION = "0.4.22-quota-source-duration";
   const ENABLE_CHART_TOOLTIP_ENHANCER = false;
   const CHART_IDS = {
     controls: "codex-meter-chart-controls",
@@ -2279,12 +2279,7 @@
   };
 
   const shortLimitWindow = (report) =>
-    (report.windows || []).find(
-      (window) =>
-        isShortLimitWindow(window) &&
-        window.role !== "primary" &&
-        !/(?:^|\.)primary(?:_window)?(?:\.|$)/i.test(window.key || ""),
-    ) || null;
+    (report.windows || []).find(isShortLimitWindow) || null;
 
   const sparkLimitWindow = (report, kind) =>
     (report.customWindows || []).find(

@@ -256,12 +256,10 @@
     });
   };
 
-  // Ordinary and Spark limits share a shape. A sub-day primary in the ordinary
-  // tree is not the generic Codex 5-hour allowance, so keep it out of that card.
+  // Keep every ordinary Codex window. primary/secondary are API slot names;
+  // the card selectors classify them by their reported duration.
   const extractOrdinaryLimitWindows = (root, options = {}) =>
-    extractLimitWindows(root, options).filter(
-      (window) => !(window.role === "primary" && isSubDayLimitWindow(window)),
-    );
+    extractLimitWindows(root, options);
 
   const getStats = (list) => {
     const totals = list.reduce(

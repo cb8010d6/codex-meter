@@ -89,13 +89,11 @@ const windowValue = (seconds, usedPercent) => ({
   used_percent: usedPercent,
 });
 const ordinaryWindows = extractOrdinaryLimitWindows({
-  primary_window: windowValue(5 * 60 * 60, 91),
-  secondary_window: windowValue(5 * 60 * 60, 44),
-  tertiary_window: windowValue(7 * 24 * 60 * 60, 22),
+  primary_window: windowValue(5 * 60 * 60, 44),
+  secondary_window: windowValue(7 * 24 * 60 * 60, 22),
 });
-assert.equal(ordinaryWindows.some((window) => window.key === "primary_window"), false);
-assert.equal(ordinaryWindows.find((window) => window.key === "secondary_window").usedPercent, 44);
-assert.equal(ordinaryWindows.find((window) => window.key === "tertiary_window").usedPercent, 22);
+assert.equal(ordinaryWindows.find((window) => window.key === "primary_window").usedPercent, 44);
+assert.equal(ordinaryWindows.find((window) => window.key === "secondary_window").usedPercent, 22);
 
 const sparkWindows = extractAdditionalLimitWindows([
   {
